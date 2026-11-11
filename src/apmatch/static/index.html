@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AP Match</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --text: #1c2330; --muted: #5d6878; --border: #dde2e9; --track: #e8ebf0;
+  --accent: #2f6fdb; --accent-soft: #e4edfc; --good: #11804f; --good-soft: #e3f5ec; --warn: #8a5a00; --warn-soft: #fff4dc;
+  --bad: #b42318; --bad-soft: #fde8e6; --bar: #2f6fdb; --bar2: #c98a12; --radius: 10px; color-scheme: light;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #11151c; --panel: #181e27; --text: #e6eaf0; --muted: #9aa5b5; --border: #2a3340; --track: #232b37;
+    --accent: #6c9cf0; --accent-soft: #1b2a44; --good: #4ccb8f; --good-soft: #15302a; --warn: #f3c46b; --warn-soft: #3a2e14;
+    --bad: #ff8a7a; --bad-soft: #3b1d1b; --bar: #6c9cf0; --bar2: #e0a83a; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { overflow-x: hidden; }
+body { margin: 0; background: var(--bg); color: var(--text); font-size: 14px; }
+header { padding: 16px 24px 4px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+header > * { min-width: 0; overflow-wrap: anywhere; }
+h1 { font-size: 20px; margin: 0; }
+h2 { font-size: 13px; margin: 0 0 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+h3 { font-size: 16px; margin: 0 0 6px; overflow-wrap: anywhere; }
+nav { display: flex; gap: 4px; padding: 8px 24px 0; flex-wrap: wrap; }
+nav a { color: var(--muted); text-decoration: none; padding: 7px 12px; border-radius: 8px; font-weight: 600; }
+nav a.on { background: var(--accent-soft); color: var(--accent); }
+main { padding: 12px 24px 24px; display: grid; gap: 16px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; min-width: 0; }
+.kpi .v { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.kpi .l { color: var(--muted); margin-top: 2px; }
+.wide { grid-column: span 4; } .half { grid-column: span 2; } .three { grid-column: span 3; }
+.muted { color: var(--muted); } .small { font-size: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 6px 8px; border-top: 1px solid var(--border); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; border-top: 0; white-space: nowrap; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+th.grp { text-align: center; border-bottom: 1px solid var(--border); }
+td.sep, th.sep { border-left: 1px solid var(--border); }
+.scroll { overflow-x: auto; max-width: 100%; }
+#inv-match { min-width: 820px; } #inv-match td:nth-child(2) { min-width: 170px; } #m-cap { min-width: 760px; }
+.wrap { overflow-wrap: anywhere; }
+.badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 10px; white-space: nowrap; background: var(--track); color: var(--muted); }
+.ok { background: var(--good-soft); color: var(--good); }
+.wn { background: var(--warn-soft); color: var(--warn); }
+.lo { background: var(--bad-soft); color: var(--bad); }
+td.bad { background: var(--bad-soft); color: var(--bad); font-weight: 600; }
+td.warn { background: var(--warn-soft); color: var(--warn); }
+tr.pick { cursor: pointer; } tr.pick:hover td { background: var(--track); }
+tr.sel td { background: var(--accent-soft); }
+button, select, input, textarea { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; max-width: 100%; }
+button { cursor: pointer; font-weight: 600; }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.row label { display: flex; gap: 6px; align-items: center; color: var(--muted); }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.chart text { fill: var(--muted); font-size: 12px; }
+.chart text.v { fill: var(--text); font-variant-numeric: tabular-nums; }
+.chart .gridline { stroke: var(--border); stroke-width: 1; }
+.chart rect.bar { fill: var(--bar); } .chart rect.bar2 { fill: var(--bar2); }
+.chart path.line { fill: none; stroke: var(--bar); stroke-width: 2; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+#tip { position: fixed; pointer-events: none; background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 9px; font-size: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.12); display: none; z-index: 10; max-width: 260px; }
+ul.explain { margin: 0; padding-left: 18px; line-height: 1.5; } ul.explain li { overflow-wrap: anywhere; }
+pre.doc { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin: 0; max-height: 360px; overflow: auto; }
+.exc { border-top: 1px solid var(--border); padding: 10px 0; } .exc:first-of-type { border-top: 0; }
+.msg { margin-top: 8px; font-size: 13px; overflow-wrap: anywhere; }
+.hide { display: none !important; }
+@media (max-width: 900px) {
+  main { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 12px 16px 16px; }
+  header, nav { padding-left: 16px; padding-right: 16px; }
+  .wide, .half, .three, .panel:not(.kpi) { grid-column: span 2; }
+}
+@media (max-width: 520px) {
+  .kpi .v { font-size: 19px; }
+  .hide-sm { display: none; }
+  th, td { padding: 6px 5px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>AP Match</h1>
+  <span class="muted" id="sub">Kestrel Ridge Fabrication, accounts payable (synthetic)</span>
+</header>
+<nav id="nav">
+  <a href="#/queue" data-v="queue">Exceptions</a>
+  <a href="#/payments" data-v="payments">Payment runs</a>
+  <a href="#/metrics" data-v="metrics">Metrics</a>
+</nav>
+
+<main id="v-queue">
+  <section class="panel wide">
+    <h2>Exceptions queue</h2>
+    <div class="row" style="margin-bottom:10px">
+      <label>Type <select id="f-type"><option value="">all</option></select></label>
+      <label>Owner <select id="f-owner"><option value="">all</option><option>buyer</option><option>receiving</option><option>ap_clerk</option><option>treasury</option></select></label>
+      <label>Status <select id="f-status"><option>open</option><option>resolved</option><option value="all">all</option></select></label>
+      <label><input type="checkbox" id="f-overdue"> overdue only</label>
+    </div>
+    <p class="muted small" id="q-note"></p>
+    <div class="scroll"><table id="q-table"></table></div>
+  </section>
+</main>
+
+<main id="v-invoice" class="hide">
+  <section class="panel wide" id="inv-head"></section>
+  <section class="panel wide">
+    <h2>Three-way match</h2>
+    <div class="scroll"><table id="inv-match"></table></div>
+    <p class="muted small">Red cells are outside tolerance. Received is net of returns, across all receipts up to the match time. Billed before is quantity on earlier invoices for the same PO line.</p>
+  </section>
+  <section class="panel half">
+    <h2>Why</h2>
+    <ul class="explain" id="inv-explain"></ul>
+  </section>
+  <section class="panel half">
+    <h2>Exceptions and actions</h2>
+    <div id="inv-exc"></div>
+  </section>
+  <section class="panel half">
+    <h2>Receipts</h2>
+    <div class="scroll"><table id="inv-rcpt"></table></div>
+  </section>
+  <section class="panel half">
+    <h2>Document as received</h2>
+    <pre class="doc" id="inv-text"></pre>
+  </section>
+</main>
+
+<main id="v-payments" class="hide">
+  <section class="panel wide">
+    <div class="row">
+      <label>Cost of cash <input id="coc" type="number" min="0" max="60" step="0.5" value="8" style="width:80px"> % a year</label>
+      <button class="primary" id="coc-go">Re-plan</button>
+      <span class="muted small">Take a discount only when its annualized return beats this rate. The whole year is re-planned on a copy.</span>
+    </div>
+  </section>
+  <div class="panel kpi"><div class="v" id="p-cap">-</div><div class="l">discounts captured</div></div>
+  <div class="panel kpi"><div class="v" id="p-miss">-</div><div class="l">missed (approved too late)</div></div>
+  <div class="panel kpi"><div class="v" id="p-dec">-</div><div class="l">declined (below cost of cash)</div></div>
+  <div class="panel kpi"><div class="v" id="p-dpo">-</div><div class="l">days payable outstanding</div></div>
+  <section class="panel half">
+    <h2>Terms</h2>
+    <div class="scroll"><table id="p-terms"></table></div>
+  </section>
+  <section class="panel half">
+    <h2>Upcoming payment runs</h2>
+    <div class="scroll"><table id="p-runs"></table></div>
+  </section>
+  <section class="panel wide">
+    <h2 id="prop-title">Run proposal</h2>
+    <div class="scroll"><table id="p-prop"></table></div>
+  </section>
+</main>
+
+<main id="v-metrics" class="hide">
+  <div class="panel kpi"><div class="v" id="k-tl">-</div><div class="l">touchless rate</div></div>
+  <div class="panel kpi"><div class="v" id="k-cyc">-</div><div class="l">median hours, receipt to approval (with exceptions)</div></div>
+  <div class="panel kpi"><div class="v" id="k-cost">-</div><div class="l">cost per invoice (modeled)</div></div>
+  <div class="panel kpi"><div class="v" id="k-disc">-</div><div class="l">discount capture</div></div>
+  <section class="panel half">
+    <h2>Touchless rate by week</h2>
+    <div class="chart" id="c-week"></div>
+  </section>
+  <section class="panel half">
+    <h2>Exception rate by type</h2>
+    <div class="chart" id="c-exc"></div>
+  </section>
+  <section class="panel half">
+    <h2>Discounts by month</h2>
+    <div class="chart" id="c-disc"></div>
+    <div class="legend"><span><i style="background:var(--bar)"></i>captured</span><span><i style="background:var(--bar2)"></i>missed</span></div>
+  </section>
+  <section class="panel half">
+    <h2>Controls</h2>
+    <table id="m-ctl"></table>
+  </section>
+  <section class="panel half">
+    <h2>Detection vs planted problems</h2>
+    <div class="scroll"><table id="m-det"></table></div>
+  </section>
+  <section class="panel half">
+    <h2>SLA by exception type</h2>
+    <div class="scroll"><table id="m-sla"></table></div>
+  </section>
+  <section class="panel wide">
+    <h2>Capture accuracy by layout</h2>
+    <div class="scroll"><table id="m-cap"></table></div>
+    <p class="muted small" id="m-cap-note"></p>
+  </section>
+</main>
+<div id="tip"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const tip = $("tip");
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const get = (u) => fetch(u).then((r) => { if (!r.ok) throw new Error(u); return r.json(); });
+const money = (x) => x == null ? "-" : (x < 0 ? "-$" : "$") + Math.abs(x).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const big = (x) => Math.abs(x) >= 1e6 ? "$" + (x / 1e6).toFixed(2) + "M" : Math.abs(x) >= 1e3 ? "$" + (x / 1e3).toFixed(0) + "K" : "$" + x.toFixed(0);
+const pct = (x, d = 1) => x == null ? "-" : (x * 100).toFixed(d) + "%";
+const qty = (x) => x == null ? "-" : Number(x).toLocaleString(undefined, { maximumFractionDigits: 2 });
+const TYPE_LABEL = { capture: "capture", price: "price", quantity: "quantity", no_receipt: "no receipt", duplicate: "duplicate", bank_change: "bank change", non_po: "non-PO", closed_po: "closed PO" };
+const TYPE_CLASS = { duplicate: "lo", bank_change: "lo", closed_po: "lo", price: "wn", quantity: "wn", no_receipt: "wn" };
+const badge = (t) => `<span class="badge ${TYPE_CLASS[t] || ""}">${esc(TYPE_LABEL[t] || t)}</span>`;
+const STATUS_CLASS = { paid: "ok", approved: "ok", scheduled: "ok", rejected: "lo", exception: "wn", on_hold: "wn" };
+let people = [];
+
+function showTip(e, html) { tip.innerHTML = html; tip.style.display = "block"; const x = Math.min(e.clientX + 12, window.innerWidth - tip.offsetWidth - 8); tip.style.left = Math.max(4, x) + "px"; tip.style.top = (e.clientY + 12) + "px"; }
+function hideTip() { tip.style.display = "none"; }
+function bindTips(el) { el.querySelectorAll("[data-tip]").forEach((n) => { n.addEventListener("mousemove", (e) => showTip(e, n.dataset.tip)); n.addEventListener("mouseleave", hideTip); }); }
+
+// Horizontal bars, one value axis.
+function hbar(el, rows, fmt) {
+  const w = 520, lh = 26, left = 110, h = rows.length * lh + 8, max = Math.max(...rows.map((r) => r.v), 1e-9);
+  let s = `<svg viewBox="0 0 ${w} ${h}" role="img">`;
+  rows.forEach((r, i) => {
+    const y = i * lh + 4, bw = (w - left - 70) * r.v / max;
+    s += `<text x="${left - 8}" y="${y + 15}" text-anchor="end">${esc(r.k)}</text>`;
+    s += `<rect class="bar" x="${left}" y="${y + 3}" width="${Math.max(bw, 1)}" height="${lh - 9}" rx="3" data-tip="${esc(r.k)}: ${esc(fmt(r.v))}${r.extra ? "<br>" + esc(r.extra) : ""}"></rect>`;
+    s += `<text class="v" x="${left + bw + 6}" y="${y + 15}">${esc(fmt(r.v))}</text>`;
+  });
+  el.innerHTML = s + "</svg>"; bindTips(el);
+}
+
+// Line chart for a rate, y axis 0 to 100% or tighter.
+function line(el, pts, fmt) {
+  const w = 520, h = 200, l = 44, r = 10, t = 10, b = 26;
+  const vals = pts.map((p) => p.v), lo = Math.max(0, Math.floor((Math.min(...vals) - 0.02) * 20) / 20), hi = Math.min(1, Math.ceil((Math.max(...vals) + 0.01) * 20) / 20);
+  const X = (i) => l + (w - l - r) * i / Math.max(pts.length - 1, 1), Y = (v) => t + (h - t - b) * (1 - (v - lo) / (hi - lo || 1));
+  let s = `<svg viewBox="0 0 ${w} ${h}" role="img">`;
+  for (let k = 0; k <= 4; k++) { const v = lo + (hi - lo) * k / 4; s += `<line class="gridline" x1="${l}" x2="${w - r}" y1="${Y(v)}" y2="${Y(v)}"></line><text x="${l - 6}" y="${Y(v) + 4}" text-anchor="end">${fmt(v)}</text>`; }
+  s += `<path class="line" d="${pts.map((p, i) => (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(p.v).toFixed(1)).join(" ")}"></path>`;
+  [0, Math.floor(pts.length / 2), pts.length - 1].forEach((i) => { if (pts[i]) s += `<text x="${X(i)}" y="${h - 6}" text-anchor="middle">${esc(pts[i].k.slice(5))}</text>`; });
+  pts.forEach((p, i) => { s += `<circle cx="${X(i)}" cy="${Y(p.v)}" r="6" fill="transparent" data-tip="Week of ${esc(p.k)}: ${fmt(p.v)}<br>${p.n} invoices"></circle>`; });
+  el.innerHTML = s + "</svg>"; bindTips(el);
+}
+
+// Grouped vertical bars, two series on one dollar axis.
+function gbar(el, rows) {
+  const w = 520, h = 210, l = 52, r = 6, t = 10, b = 26, max = Math.max(...rows.flatMap((x) => [x.a, x.b]), 1);
+  const Y = (v) => t + (h - t - b) * (1 - v / max), slot = (w - l - r) / rows.length, bw = Math.max(2, slot * 0.36);
+  let s = `<svg viewBox="0 0 ${w} ${h}" role="img">`;
+  for (let k = 0; k <= 4; k++) { const v = max * k / 4; s += `<line class="gridline" x1="${l}" x2="${w - r}" y1="${Y(v)}" y2="${Y(v)}"></line><text x="${l - 6}" y="${Y(v) + 4}" text-anchor="end">${big(v)}</text>`; }
+  rows.forEach((x, i) => {
+    const x0 = l + slot * i + slot * 0.12;
+    s += `<rect class="bar" x="${x0}" y="${Y(x.a)}" width="${bw}" height="${Y(0) - Y(x.a)}" data-tip="${esc(x.k)} captured ${money(x.a)}"></rect>`;
+    s += `<rect class="bar2" x="${x0 + bw}" y="${Y(x.b)}" width="${bw}" height="${Y(0) - Y(x.b)}" data-tip="${esc(x.k)} missed ${money(x.b)}"></rect>`;
+    if (i % 2 === 0) s += `<text x="${x0 + bw}" y="${h - 6}" text-anchor="middle">${esc(x.k.slice(2))}</text>`;
+  });
+  el.innerHTML = s + "</svg>"; bindTips(el);
+}
+
+// ---------------------------------------------------------------- queue
+async function loadQueue() {
+  const p = new URLSearchParams({ status: $("f-status").value, limit: "500" });
+  if ($("f-type").value) p.set("type", $("f-type").value);
+  if ($("f-owner").value) p.set("owner", $("f-owner").value);
+  if ($("f-overdue").checked) p.set("overdue", "true");
+  const q = await get("/api/exceptions?" + p);
+  const sel = $("f-type");
+  if (sel.options.length === 1) Object.keys(TYPE_LABEL).forEach((t) => sel.add(new Option(TYPE_LABEL[t], t)));
+  $("q-note").textContent = `${q.count} exceptions. Open by type: ` + Object.entries(q.open_by_type).map(([k, v]) => `${TYPE_LABEL[k]} ${v}`).join(", ") + ". Sorted by SLA due time. Click a row for the match.";
+  $("q-table").innerHTML = `<tr><th>Type</th><th>Owner</th><th>Supplier</th><th class="hide-sm">Invoice</th><th class="num">Amount</th><th class="num">SLA</th><th class="hide-sm">Detail</th></tr>` +
+    q.rows.map((e) => {
+      const sla = e.status !== "open" ? `<span class="badge">${esc(e.resolution || e.status)}</span>` : e.overdue ? `<span class="badge lo">${Math.abs(e.hours_left).toFixed(0)}h over</span>` : `<span class="badge ok">${e.hours_left.toFixed(0)}h left</span>`;
+      return `<tr class="pick" data-doc="${esc(e.doc_id)}"><td>${badge(e.type)}</td><td>${esc(e.owner)}</td><td class="wrap">${esc(e.supplier)}</td><td class="hide-sm wrap">${esc(e.invoice_number)}</td><td class="num">${money(e.amount)}</td><td class="num">${sla}</td><td class="hide-sm small wrap">${esc(e.detail.slice(0, 140))}${e.detail.length > 140 ? "..." : ""}</td></tr>`;
+    }).join("");
+  $("q-table").querySelectorAll("tr.pick").forEach((tr) => tr.onclick = () => { location.hash = "#/invoice/" + tr.dataset.doc; });
+}
+["f-type", "f-owner", "f-status", "f-overdue"].forEach((id) => $(id).addEventListener("change", loadQueue));
+
+// ---------------------------------------------------------------- invoice detail
+async function loadInvoice(id) {
+  const d = await get("/api/invoices/" + encodeURIComponent(id));
+  const m = d.match || { lines: [], charges: [], unmatched: [] };
+  $("inv-head").innerHTML = `<h3>${esc(d.supplier ? d.supplier.name : d.supplier_name)} invoice ${esc(d.number)}</h3>
+    <div class="row small"><span class="badge ${STATUS_CLASS[d.status] || ""}">${esc(d.status)}</span>
+    <span>${esc(d.id)}</span><span class="muted">dated ${esc(d.invoice_date)}, received ${esc((d.received_at || "").replace("T", " "))}</span>
+    <span class="muted">${d.po ? esc(d.po.number) + " (" + esc(d.po.status) + ", created by " + esc(d.po.created_by) + ")" : "no PO"}</span>
+    <span class="muted">terms ${esc(d.supplier && d.supplier.terms)}</span><span class="muted">${esc(d.layout)} layout, ${esc(d.channel)}</span></div>
+    <p class="wrap" style="margin:10px 0 0">${esc(m.summary || "")}</p>
+    ${d.payment ? `<p class="small muted wrap" style="margin:6px 0 0">Payment: ${esc(d.payment.pay_date)}, ${money(d.payment.net_amount)} net. ${esc(d.payment.reason)}.</p>` : ""}`;
+  const c = (bad, v) => `<td class="num ${bad ? "bad" : ""}">${v}</td>`;
+  let rows = `<tr><th></th><th class="grp sep" colspan="3">PO</th><th class="grp sep" colspan="2">Receipts</th><th class="grp sep" colspan="3">Invoice</th><th class="grp sep" colspan="2">Variance</th></tr>
+    <tr><th>Line</th><th class="sep">Item</th><th class="num">Qty</th><th class="num">Price</th><th class="num sep">Received</th><th class="num">Billed before</th><th class="num sep">Qty</th><th class="num">Price</th><th class="num">Amount</th><th class="num sep">Price</th><th class="num">Qty</th></tr>`;
+  rows += m.lines.map((ln) => {
+    const pb = ln.issues.includes("price"), qb = ln.issues.includes("quantity") || ln.issues.includes("no_receipt");
+    return `<tr><td>${ln.po_line}</td><td class="sep wrap">${esc(ln.item)}<div class="small muted">${esc(ln.description)}</div></td><td class="num">${qty(ln.po_qty)}</td><td class="num">${money(ln.po_price)}</td>
+      ${c(qb, ln.received_qty == null ? "two-way" : qty(ln.received_qty))}<td class="num">${qty(ln.prior_billed)}</td>
+      ${c(qb, qty(ln.billed_qty) + (ln.invoice_lines.length > 1 ? ` <span class="small muted">(${ln.invoice_lines.length} lines)</span>` : ""))}${c(pb, money(ln.invoice_price))}<td class="num">${money(ln.billed_qty * ln.invoice_price)}</td>
+      ${c(pb, (ln.price_var_pct * 100).toFixed(2) + "%")}${c(qb, ln.qty_var > 0 ? "+" + qty(ln.qty_var) : "0")}</tr>`;
+  }).join("");
+  rows += (m.charges || []).map((ch) => `<tr><td></td><td class="sep">${esc(ch.kind)}</td><td></td><td></td><td class="sep"></td><td></td><td class="sep"></td><td></td><td class="num ${ch.status === "ok" ? "" : "bad"}">${money(ch.amount)}</td><td class="sep"></td><td></td></tr>`).join("");
+  rows += (m.unmatched || []).map((u) => `<tr><td></td><td class="sep bad wrap" colspan="1">${esc(u.description)}</td><td colspan="2" class="muted small">not on PO</td><td class="sep"></td><td></td><td class="sep num">${qty(u.qty)}</td><td class="num">${money(u.unit_price)}</td><td class="num bad">${money(u.amount)}</td><td class="sep"></td><td></td></tr>`).join("");
+  rows += `<tr><td></td><td class="sep"><b>Total</b></td><td></td><td class="num">${d.po ? money(d.po.total) : "-"}</td><td class="sep"></td><td></td><td class="sep"></td><td></td><td class="num"><b>${money(d.total)}</b></td><td class="sep num" colspan="2">payable ${money(m.payable_amount)}</td></tr>`;
+  $("inv-match").innerHTML = rows;
+  const ex = [...m.lines.map((l) => l.explanation), ...(m.charges || []).map((x) => x.explanation)];
+  $("inv-explain").innerHTML = ex.map((x) => `<li>${esc(x)}</li>`).join("") || "<li>Not matched yet: waiting on capture review.</li>";
+  $("inv-rcpt").innerHTML = `<tr><th>Receipt</th><th>Line</th><th>Date</th><th class="num">Received</th><th class="num">Returned</th><th class="hide-sm">Note</th></tr>` +
+    d.receipts.map((r) => `<tr><td>${esc(r.id)}</td><td>${r.line_no}</td><td>${esc(dayIso(r.day))}</td><td class="num">${qty(r.qty_received)}</td><td class="num">${qty(r.qty_returned)}</td><td class="hide-sm small">${esc(r.note)}</td></tr>`).join("");
+  $("inv-text").textContent = d.text || "";
+  const box = $("inv-exc");
+  box.innerHTML = d.exceptions.length ? "" : `<p class="muted">No exceptions. This invoice was matched and approved with no human touch.</p>`;
+  for (const e of d.exceptions) {
+    const div = document.createElement("div"); div.className = "exc";
+    const hist = e.history.map((h) => `${esc(h.at.replace("T", " "))} ${esc(h.actor)} ${esc(h.action)}`).join("<br>");
+    div.innerHTML = `<div class="row">${badge(e.type)}<span class="small muted">${esc(e.id)}, owner ${esc(e.owner)}, ${esc(e.status)}${e.resolution ? ": " + esc(e.resolution) + " by " + esc(e.resolved_by) : ""}</span></div><p class="small wrap" style="margin:6px 0">${esc(e.detail)}</p>${hist ? `<div class="small muted">${hist}</div>` : ""}`;
+    if (e.status === "open") {
+      const info = await get("/api/exceptions/" + e.id);
+      const route = info.approval_route && info.approval_route.path ? `<div class="small muted wrap">Approval route: ${esc(info.approval_route.path.join(" then "))}. PO creator ${esc(info.po_creator)} may not approve.</div>` : "";
+      div.innerHTML += `${route}<div class="row" style="margin-top:8px"><select data-a>${info.allowed_actions.map((a) => `<option>${esc(a)}</option>`).join("")}</select>
+        <select data-p>${people.map((p) => `<option value="${esc(p.id)}">${esc(p.id)} ${esc(p.name)} (${esc(p.role)})</option>`).join("")}</select>
+        <button class="primary" data-go>Apply</button></div><div class="msg" data-msg></div>`;
+      if (info.approval_route && info.approval_route.approver) div.querySelector("[data-p]").value = info.approval_route.approver;
+      div.querySelector("[data-go]").onclick = async () => {
+        const body = { action: div.querySelector("[data-a]").value, actor: div.querySelector("[data-p]").value, note: "from the web UI" };
+        const r = await fetch(`/api/exceptions/${e.id}/actions`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+        const j = await r.json();
+        if (!r.ok) { div.querySelector("[data-msg]").innerHTML = `<span class="badge lo">${r.status}</span> ${esc(j.detail)}`; return; }
+        loadInvoice(id);
+      };
+    }
+    box.appendChild(div);
+  }
+}
+function dayIso(day) { const d = new Date(Date.UTC(2025, 0, 1) + Math.floor(day) * 86400000); return d.toISOString().slice(0, 10); }
+
+// ---------------------------------------------------------------- payments
+async function loadPayments() {
+  const coc = Number($("coc").value) / 100;
+  const p = await get("/api/payments/plan?cost_of_cash=" + coc);
+  $("p-cap").textContent = big(p.discount_captured); $("p-miss").textContent = big(p.discount_missed);
+  $("p-dec").textContent = big(p.discount_declined); $("p-dpo").textContent = p.dpo_days + " days";
+  $("p-terms").innerHTML = `<tr><th>Terms</th><th class="num">Annualized return</th><th>Decision</th></tr>` + p.terms.map((t) => `<tr><td>${esc(t.terms)}</td><td class="num">${t.annualized_return ? pct(t.annualized_return) : "-"}</td><td>${t.annualized_return ? (t.take ? '<span class="badge ok">take</span>' : '<span class="badge wn">decline</span>') : '<span class="badge">pay at due date</span>'}</td></tr>`).join("");
+  $("p-runs").innerHTML = `<tr><th>Run date</th><th class="num">Invoices</th><th class="num hide-sm">Suppliers</th><th class="num">Amount</th><th class="num">Discount</th></tr>` +
+    p.upcoming_runs.map((r) => `<tr class="pick" data-d="${esc(r.date)}"><td>${esc(r.date)}</td><td class="num">${r.invoices}</td><td class="num hide-sm">${r.suppliers}</td><td class="num">${big(r.amount)}</td><td class="num">${money(r.discount)}</td></tr>`).join("");
+  $("p-runs").querySelectorAll("tr.pick").forEach((tr) => tr.onclick = () => { $("p-runs").querySelectorAll("tr").forEach((x) => x.classList.remove("sel")); tr.classList.add("sel"); loadProposal(tr.dataset.d); });
+  if (p.upcoming_runs.length) loadProposal(p.upcoming_runs[0].date);
+}
+async function loadProposal(date) {
+  const p = await get("/api/payments/proposal?run_date=" + date);
+  $("prop-title").textContent = `Run proposal for ${p.run_date}: ${money(p.total)} to ${p.payments.length} suppliers, ${money(p.discount)} in discounts`;
+  $("p-prop").innerHTML = `<tr><th>Supplier</th><th class="num">Invoices</th><th class="num">Gross</th><th class="num">Discount</th><th class="num">Net</th><th class="hide-sm">Why this date</th></tr>` +
+    [...p.payments, ...p.carried_forward].map((r) => `<tr><td class="wrap">${esc(r.supplier)}</td><td class="num">${r.invoices.length}</td><td class="num">${money(r.gross)}</td><td class="num">${money(r.discount)}</td><td class="num">${money(r.net)}</td><td class="hide-sm small wrap">${esc([...new Set(r.invoices.map((i) => i.reason.split(":")[0]))].join(", "))}</td></tr>`).join("");
+}
+$("coc-go").onclick = loadPayments;
+
+// ---------------------------------------------------------------- metrics
+async function loadMetrics() {
+  const s = await get("/api/summary");
+  const k = s.kpis;
+  $("sub").textContent = `${s.company}, ${k.invoices.toLocaleString()} invoices through ${s.as_of}`;
+  $("k-tl").textContent = pct(k.touchless_rate); $("k-cyc").textContent = k.cycle_hours.with_exceptions_median;
+  $("k-cost").textContent = "$" + k.cost_per_invoice.toFixed(2); $("k-disc").textContent = pct(k.discount.capture_rate);
+  line($("c-week"), s.series.weekly.map((w) => ({ k: w.week_start, v: w.touchless_rate, n: w.invoices })), (v) => pct(v, 0));
+  hbar($("c-exc"), Object.entries(k.exception_rate_by_type).map(([t, v]) => ({ k: TYPE_LABEL[t], v, extra: `${k.exceptions_by_type[t]} invoices` })).sort((a, b) => b.v - a.v), (v) => pct(v));
+  gbar($("c-disc"), s.series.monthly_discount.map((m) => ({ k: m.month, a: m.captured, b: m.missed })));
+  const c = s.controls;
+  $("m-ctl").innerHTML = [
+    ["Planted duplicates approved", `${c.duplicates_approved} of ${c.planted_duplicates}`, c.duplicates_approved === 0],
+    ["Duplicate dollars blocked", big(c.duplicate_dollars_blocked), true],
+    ["Bank fraud approved", `${c.bank_fraud_approved} of ${c.planted_bank_fraud}`, c.bank_fraud_approved === 0],
+    ["Bank fraud dollars blocked", big(c.bank_fraud_dollars_blocked), true],
+    ["Real bank changes verified", `${c.legit_bank_changes_verified} of ${c.legit_bank_changes}`, true],
+    ["Closed PO invoices approved", `${c.closed_po_approved} of ${c.closed_po_invoices}`, c.closed_po_approved === 0],
+    ["Segregation of duties violations", c.sod_violations, c.sod_violations === 0],
+  ].map(([a, b, ok]) => `<tr><td>${a}</td><td class="num"><span class="badge ${ok ? "ok" : "lo"}">${b}</span></td></tr>`).join("");
+  $("m-det").innerHTML = `<tr><th>Type</th><th class="num">Planted</th><th class="num">Flagged</th><th class="num">Precision</th><th class="num">Recall</th></tr>` +
+    Object.entries(s.detection).map(([t, d]) => `<tr><td>${badge(t)}</td><td class="num">${d.planted}</td><td class="num">${d.flagged}</td><td class="num">${pct(d.precision)}</td><td class="num">${pct(d.recall)}</td></tr>`).join("");
+  $("m-sla").innerHTML = `<tr><th>Type</th><th class="num">SLA</th><th class="num">Raised</th><th class="num">Within SLA</th><th class="num">Open</th></tr>` +
+    Object.entries(k.sla).map(([t, d]) => `<tr><td>${badge(t)}</td><td class="num">${{ capture: 8, price: 48, quantity: 48, no_receipt: 72, duplicate: 24, bank_change: 24, non_po: 48, closed_po: 48 }[t]}h</td><td class="num">${d.raised}</td><td class="num">${pct(d.within_sla)}</td><td class="num">${d.open}${d.open_overdue ? ` <span class="badge lo">${d.open_overdue} late</span>` : ""}</td></tr>`).join("");
+  const fields = ["supplier_name", "invoice_number", "invoice_date", "po_number", "account", "total", "lines"];
+  $("m-cap").innerHTML = `<tr><th>Layout</th><th class="num">Invoices</th>${fields.map((f) => `<th class="num">${f.replace("_", " ")}</th>`).join("")}<th class="num">All fields</th><th class="num">Straight through</th><th class="num">Confident but wrong</th></tr>` +
+    Object.entries(s.capture.by_layout).map(([l, x]) => `<tr><td>${esc(l)}</td><td class="num">${x.invoices.toLocaleString()}</td>${fields.map((f) => `<td class="num">${pct(x.field_accuracy[f])}</td>`).join("")}<td class="num">${pct(x.all_fields_right)}</td><td class="num">${pct(x.straight_through)}</td><td class="num ${x.confident_wrong > 0 ? "warn" : ""}">${pct(x.confident_wrong, 2)}</td></tr>`).join("");
+  $("m-cap-note").textContent = `Extractor: ${s.capture.extractor}. Straight through means every field scored at or above 0.80 confidence. Low-confidence documents go to an AP clerk as capture exceptions.`;
+}
+
+// ---------------------------------------------------------------- routing
+function route() {
+  const h = location.hash || "#/queue";
+  const [, view, arg] = h.split("/");
+  const v = view === "invoice" ? "invoice" : ["queue", "payments", "metrics"].includes(view) ? view : "queue";
+  document.querySelectorAll("main").forEach((m) => m.classList.toggle("hide", m.id !== "v-" + v));
+  document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("on", a.dataset.v === (v === "invoice" ? "queue" : v)));
+  hideTip();
+  if (v === "queue") loadQueue();
+  if (v === "invoice") loadInvoice(decodeURIComponent(arg || ""));
+  if (v === "payments") loadPayments();
+  if (v === "metrics") loadMetrics();
+}
+window.addEventListener("hashchange", route);
+get("/api/people").then((p) => { people = p; route(); });
+</script>
+</body>
+</html>

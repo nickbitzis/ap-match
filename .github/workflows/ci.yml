@@ -1,0 +1,54 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Lint
+        run: |
+          uvx ruff check .
+          uvx ruff format --check .
+      - name: Test
+        run: uv run --python 3.12 --group dev pytest -q
+
+  controls-gate:
+    # Simulates a year of AP on 8,000 POs. Fails if any planted duplicate or fraudulent bank change invoice is
+    # approved for payment, if a PO creator approved a variance, or if the touchless rate drops below 78%.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Simulate and gate
+        run: |
+          mkdir -p data/ci
+          uv run --python 3.12 apmatch run --pos 8000 --suppliers 160 --out data/ci/report.json \
+            --gate --min-touchless 0.78 --summary "$GITHUB_STEP_SUMMARY"
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ap-report
+          path: data/ci/report.json
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t ap-match:ci .
+      - name: Smoke test container
+        run: |
+          docker run -d --name ap -p 8887:8887 -e APMATCH_POS=3000 ap-match:ci
+          for i in $(seq 1 60); do curl -sf http://localhost:8887/healthz | grep -q '"ready":true' && break; sleep 2; done
+          curl -sf http://localhost:8887/api/summary | grep touchless_rate
+          curl -sf "http://localhost:8887/api/exceptions?status=all&limit=5" | grep '"rows"'
+          curl -sf http://localhost:8887/api/payments/proposal | grep '"payments"'
+          curl -sf http://localhost:8887/metrics | grep apmatch_duplicates_approved
+          docker rm -f ap

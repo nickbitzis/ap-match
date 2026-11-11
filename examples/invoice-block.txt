@@ -1,0 +1,14 @@
+Oakridge Point Logistics Co
+1200 Commerce Way
+INVOICE
+Invoice Number: INV54144
+Invoice Date: 2025-01-07
+PO Number: PO-0005289
+Bill To: Kestrel Ridge Fabrication, Accounts Payable, 400 Foundry Road, Millbrook
+Remit To: Bank routing 589669462 account 6884882440
+Terms: net 30
+
+ITEM        DESCRIPTION                                    QTY    UNIT PRICE          AMOUNT
+SV-1021     Quality audit per hour                           4      428.0800        1,712.32
+SV-1006     Field engineering per job                       67      257.6700       17,263.89
+                                                                       TOTAL       18,976.21

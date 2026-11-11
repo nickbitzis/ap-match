@@ -1,0 +1,44 @@
+[project]
+name = "apmatch"
+version = "1.0.0"
+description = "Accounts payable automation for a synthetic manufacturer: invoice capture, three-way match, exception routing, fraud controls, and discount-aware payment runs."
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "Nick Bitzis" }]
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+]
+
+[project.optional-dependencies]
+claude = ["anthropic>=2.6"]
+pdf = ["reportlab>=4.0"]
+
+[project.scripts]
+apmatch = "apmatch.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6", "httpx>=0.27"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/apmatch"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore:Using .httpx. with .starlette.testclient."]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# The generator builds each PO with small helper closures that run inside the same loop iteration.
+"src/apmatch/generator.py" = ["B023"]

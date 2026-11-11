@@ -1,0 +1,13 @@
+Foxglove Works Safety Products LLC
+Industriestrasse 14
+Invoice
+Invoice no.: 70909    Date: 10.01.2025
+Your order: PO-0014442
+Bank: routing 545566118 / account 7871737874
+Pos | Article | Description | Qty | Price | Amount
+1 | MR-1029 | Welding wire HSS 29pc | 29,00 | 34,87 | 1.011,23
+2 | MR-1012 | Nitrile gloves HSS 29pc | 90,00 | 64,03 | 5.762,70
+3 | MR-1004 | Cutting oil size L | 43,00 | 66,92 | 2.877,56
+4 | MR-1028 | Hearing protection 4.5in | 32,00 | 116,48 | 3.727,36
+VAT: 836,18
+Total due: 14.215,03
